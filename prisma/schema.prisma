@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+  STAFF
+  SUPERADMIN
+}
+
+
+
+// ------------------- USERS -------------------
+model Users {
+  id                 Int      @id @default(autoincrement())
+  full_name          String   @db.VarChar(100)
+  phone_number       String   @db.VarChar(20)
+  email              String?  @unique @db.VarChar(100) // Qo‘shildi
+  password           String?   @db.VarChar(255)
+  role               Role     @default(USER)
+  region             String?  @db.VarChar(100)
+  created_at         DateTime @default(now())
+  hashedRefreshToken String?
+  is_active          Boolean  @default(false)
+
+  notifications                  Notifications[]
+  sessions                       Sessions[]
+  reports                        Reports[]
+  logs                           Logs[]
+  staff                          Staff[]
+  maintenance                    Maintenance[]
+  vehicle                        Vehicles[]
+  fines_as_user                  Fines[]           @relation("UserFines")
+  fines_as_inspector             Fines[]           @relation("InspectorFines")
+  payments                       Payments[]
+  impounded_records_as_impounder Impound_records[] @relation("Impounder")
+  impounded_records_as_releaser  Impound_records[] @relation("Releaser")
+  uploaded_files                 Media_files[]     @relation("UploadedFiles")
+}
+
+// ------------------- NOTIFICATIONS -------------------
+model Notifications {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  title      String
+  message    String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  user Users @relation(fields: [user_id], references: [id])
+}
+
+// ------------------- SESSIONS -------------------
+model Sessions {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  ip_address  String?   @db.VarChar(50)
+  device_info String?   @db.VarChar(255)
+  login_time  DateTime  @default(now())
+  logout_time DateTime?
+
+  user Users @relation(fields: [user_id], references: [id])
+}
+
+// ------------------- REPORTS -------------------
+model Reports {
+  id           Int      @id @default(autoincrement())
+  generated_by Int
+  report_type  String
+  data         Json
+  created_at   DateTime @default(now())
+
+  user Users @relation(fields: [generated_by], references: [id])
+}
+
+// ------------------- LOGS -------------------
+model Logs {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  action     String
+  details    String?
+  created_at DateTime @default(now())
+
+  user Users @relation(fields: [user_id], references: [id])
+}
+
+// ------------------- STORAGE RATES -------------------
+model Storage_rates {
+  id             Int       @id @default(autoincrement())
+  rate_type      String    @db.VarChar(50)
+  amount         Float
+  currency       String    @db.VarChar(10)
+  description    String?   @db.VarChar(255)
+  effective_from DateTime
+  effective_to   DateTime?
+
+  impound_records Impound_records[]
+
+  @@map("storage_rates")
+}
+
+// ------------------- LOCATIONS -------------------
+model Locations {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(100)
+  address    String   @db.VarChar(255)
+  phone      String?  @db.VarChar(20)
+  capacity   Int
+  created_at DateTime @default(now())
+
+  staff           Staff[]
+  alerts          Alerts[]
+  impound_records Impound_records[]
+}
+
+// ------------------- STAFF -------------------
+model Staff {
+  id          Int       @id @default(autoincrement())
+  location_id Int
+  position    String    @db.VarChar(100)
+  user_id     Int
+  shift_start DateTime
+  shift_end   DateTime?
+  created_at  DateTime  @default(now())
+
+  user     Users     @relation(fields: [user_id], references: [id])
+  location Locations @relation(fields: [location_id], references: [id])
+}
+
+// ------------------- ALERTS -------------------
+model Alerts {
+  id          Int      @id @default(autoincrement())
+  location_id Int
+  alert_type  String   @db.VarChar(50)
+  description String?  @db.VarChar(255)
+  created_at  DateTime @default(now())
+
+  location Locations @relation(fields: [location_id], references: [id])
+}
+
+// ------------------- TOW TRUCKS -------------------
+model Tow_trucks {
+  id           Int      @id @default(autoincrement())
+  reg_number   String   @unique @db.VarChar(20)
+  driver_name  String   @db.VarChar(100)
+  driver_phone String   @db.VarChar(20)
+  status       String   @db.VarChar(20)
+  created_at   DateTime @default(now())
+
+  maintenance     Maintenance[]
+  impound_records Impound_records[]
+}
+
+// ------------------- MAINTENANCE -------------------
+model Maintenance {
+  id           Int      @id @default(autoincrement())
+  tow_truck_id Int
+  description  String   @db.VarChar(255)
+  performed_by Int
+  performed_at DateTime @default(now())
+
+  tow_truck Tow_trucks @relation(fields: [tow_truck_id], references: [id])
+  user      Users      @relation(fields: [performed_by], references: [id])
+}
+
+// ------------------- INFRACTION TYPES -------------------
+model Infraction_types {
+  id               Int      @id @default(autoincrement())
+  code             String   @unique @db.VarChar(20)
+  name             String   @db.VarChar(100)
+  description      String?  @db.VarChar(255)
+  law_reference    String?  @db.VarChar(255)
+  base_fine_amount Float
+  created_at       DateTime @default(now())
+
+  fines Fines[]
+}
+
+// ------------------- VEHICLES -------------------
+model Vehicles {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  plate_number String   @unique @db.VarChar(20)
+  brand        String   @db.VarChar(50)
+  model        String   @db.VarChar(50)
+  color        String?  @db.VarChar(30)
+  year         Int
+  vin          String?  @unique @db.VarChar(100)
+  created_at   DateTime @default(now())
+
+  user            Users             @relation(fields: [user_id], references: [id])
+  impound_records Impound_records[]
+  fines           Fines[]
+}
+
+// ------------------- FINES -------------------
+model Fines {
+  id                 Int       @id @default(autoincrement())
+  vehicle_id         Int
+  user_id            Int
+  infraction_type_id Int
+  inspector_id       Int?
+  fine_number        String    @unique @db.VarChar(50)
+  amount             Float
+  paid_amount        Float     @default(0)
+  location           String?   @db.VarChar(255)
+  status             String    @default("UNPAID")
+  fine_date          DateTime
+  due_date           DateTime?
+  notes              String?   @db.Text
+  created_at         DateTime  @default(now())
+
+  vehicle         Vehicles          @relation(fields: [vehicle_id], references: [id])
+  user            Users             @relation("UserFines", fields: [user_id], references: [id])
+  infraction_type Infraction_types  @relation(fields: [infraction_type_id], references: [id])
+  inspector       Users?            @relation("InspectorFines", fields: [inspector_id], references: [id])
+  payments        Payments[]
+  impound_records Impound_records[]
+  media_files     Media_files[]
+}
+
+// ------------------- PAYMENTS -------------------
+model Payments {
+  id             Int      @id @default(autoincrement())
+  fine_id        Int
+  record_id      String?  @unique @db.VarChar(50)
+  paid_by        Int
+  amount         Float
+  payment_method String   @db.VarChar(50)
+  paid_at        DateTime @default(now())
+
+  fine Fines @relation(fields: [fine_id], references: [id])
+  user Users @relation(fields: [paid_by], references: [id])
+}
+
+// ------------------- IMPOUND RECORDS -------------------
+model Impound_records {
+  id              Int       @id @default(autoincrement())
+  fine_id         Int
+  vehicle_id      Int
+  tow_truck_id    Int?
+  location_id     Int?
+  storage_rate_id Int?
+  impound_by      Int
+  released_by     Int?
+  impounded_at    DateTime  @default(now())
+  released_at     DateTime?
+  status          String    @default("IMPOUNDED")
+
+  fine         Fines          @relation(fields: [fine_id], references: [id])
+  vehicle      Vehicles       @relation(fields: [vehicle_id], references: [id])
+  tow_truck    Tow_trucks?    @relation(fields: [tow_truck_id], references: [id])
+  location     Locations?     @relation(fields: [location_id], references: [id])
+  storage_rate Storage_rates? @relation(fields: [storage_rate_id], references: [id])
+  impounder    Users          @relation("Impounder", fields: [impound_by], references: [id])
+  releaser     Users?         @relation("Releaser", fields: [released_by], references: [id])
+  media_files  Media_files[]
+}
+
+// ------------------- MEDIA FILES -------------------
+model Media_files {
+  id           Int       @id @default(autoincrement())
+  fine_id      Int?
+  record_id    Int?
+  file_path    String    @db.VarChar(255)
+  file_type    String    @db.VarChar(50)
+  uploaded_by  Int
+  effective_to DateTime?
+  uploaded_at  DateTime  @default(now())
+
+  fine     Fines?           @relation(fields: [fine_id], references: [id])
+  record   Impound_records? @relation(fields: [record_id], references: [id])
+  uploader Users            @relation("UploadedFiles", fields: [uploaded_by], references: [id])
+}
