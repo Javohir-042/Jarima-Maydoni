@@ -127,7 +127,6 @@ model Staff {
   user_id     Int
   shift_start DateTime
   shift_end   DateTime?
-  created_at  DateTime  @default(now())
 
   user     Users     @relation(fields: [user_id], references: [id])
   location Locations @relation(fields: [location_id], references: [id])
@@ -145,12 +144,22 @@ model Alerts {
 }
 
 // ------------------- TOW TRUCKS -------------------
+
+
+enum TowTruckStatus {
+  AVAILABLE    // Bo'sh, ishlatish mumkin
+  BUSY         // Band, impound operatsiyasida
+  MAINTENANCE  // Ta'mirda
+  OFFLINE      // Ishlamaydi (muddatli to'xtab turgan)
+}
+
+
 model Tow_trucks {
   id           Int      @id @default(autoincrement())
   reg_number   String   @unique @db.VarChar(20)
   driver_name  String   @db.VarChar(100)
   driver_phone String   @db.VarChar(20)
-  status       String   @db.VarChar(20)
+  status       TowTruckStatus   @default(AVAILABLE)
   created_at   DateTime @default(now())
 
   maintenance     Maintenance[]
