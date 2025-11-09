@@ -57,7 +57,7 @@ export class ReportsService {
 
     if (updateReportDto.generated_by) {
       if (updateReportDto.generated_by === 1) {
-        throw new ForbiddenException('User id not allowed');
+        throw new ForbiddenException('User id not found');
       }
 
       const user = await this.prisma.users.findUnique({

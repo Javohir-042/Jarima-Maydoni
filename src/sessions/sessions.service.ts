@@ -47,14 +47,17 @@ export class SessionsService {
 
   async findAll() {
     return await this.prisma.sessions.findMany({
-      orderBy: { login_time: 'desc' }, 
+      orderBy: { login_time: 'desc' },
       include: { 'user': true }
     });
   }
 
 
   async findOne(id: number) {
-    const session = await this.prisma.sessions.findUnique({ where: { id } });
+    const session = await this.prisma.sessions.findUnique({
+      where: { id },
+      include: { 'user': true }
+    });
     if (!session) throw new NotFoundException(`Session with ID ${id} not found`);
     return session;
   }

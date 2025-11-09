@@ -14,15 +14,13 @@ enum Role {
   SUPERADMIN
 }
 
-
-
 // ------------------- USERS -------------------
 model Users {
   id                 Int      @id @default(autoincrement())
   full_name          String   @db.VarChar(100)
   phone_number       String   @db.VarChar(20)
-  email              String?  @unique @db.VarChar(100) // Qo‘shildi
-  password           String?   @db.VarChar(255)
+  email              String?  @unique @db.VarChar(100)
+  password           String?  @db.VarChar(255)
   role               Role     @default(USER)
   region             String?  @db.VarChar(100)
   created_at         DateTime @default(now())
@@ -43,6 +41,7 @@ model Users {
   impounded_records_as_releaser  Impound_records[] @relation("Releaser")
   uploaded_files                 Media_files[]     @relation("UploadedFiles")
 }
+ 
 
 // ------------------- NOTIFICATIONS -------------------
 model Notifications {
@@ -87,13 +86,21 @@ model Logs {
   details    String?
   created_at DateTime @default(now())
 
-  user Users @relation(fields: [user_id], references: [id])
+  user Users @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
+
 // ------------------- STORAGE RATES -------------------
+
+enum RateType {
+  DAILY
+  HOURLY
+  MONTHLY
+}
+
 model Storage_rates {
   id             Int       @id @default(autoincrement())
-  rate_type      String    @db.VarChar(50)
+  rate_type      RateType  @default(DAILY)
   amount         Float
   currency       String    @db.VarChar(10)
   description    String?   @db.VarChar(255)
@@ -145,22 +152,20 @@ model Alerts {
 
 // ------------------- TOW TRUCKS -------------------
 
-
 enum TowTruckStatus {
-  AVAILABLE    // Bo'sh, ishlatish mumkin
-  BUSY         // Band, impound operatsiyasida
-  MAINTENANCE  // Ta'mirda
-  OFFLINE      // Ishlamaydi (muddatli to'xtab turgan)
+  AVAILABLE // Bo'sh, ishlatish mumkin
+  BUSY // Band, impound operatsiyasida
+  MAINTENANCE // Ta'mirda
+  OFFLINE // Ishlamaydi (muddatli to'xtab turgan)
 }
 
-
 model Tow_trucks {
-  id           Int      @id @default(autoincrement())
-  reg_number   String   @unique @db.VarChar(20)
-  driver_name  String   @db.VarChar(100)
-  driver_phone String   @db.VarChar(20)
-  status       TowTruckStatus   @default(AVAILABLE)
-  created_at   DateTime @default(now())
+  id           Int            @id @default(autoincrement())
+  reg_number   String         @unique @db.VarChar(20)
+  driver_name  String         @db.VarChar(100)
+  driver_phone String         @db.VarChar(20)
+  status       TowTruckStatus @default(AVAILABLE)
+  created_at   DateTime       @default(now())
 
   maintenance     Maintenance[]
   impound_records Impound_records[]
@@ -209,21 +214,29 @@ model Vehicles {
 }
 
 // ------------------- FINES -------------------
+
+enum FinesStatus {
+  PENDING
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
 model Fines {
-  id                 Int       @id @default(autoincrement())
+  id                 Int         @id @default(autoincrement())
   vehicle_id         Int
   user_id            Int
   infraction_type_id Int
   inspector_id       Int?
-  fine_number        String    @unique @db.VarChar(50)
+  fine_number        String      @unique @db.VarChar(50)
   amount             Float
-  paid_amount        Float     @default(0)
-  location           String?   @db.VarChar(255)
-  status             String    @default("UNPAID")
+  paid_amount        Float       @default(0)
+  location           String?     @db.VarChar(255)
+  status             FinesStatus @default(PENDING)
   fine_date          DateTime
   due_date           DateTime?
-  notes              String?   @db.Text
-  created_at         DateTime  @default(now())
+  notes              String?     @db.Text
+  created_at         DateTime    @default(now())
 
   vehicle         Vehicles          @relation(fields: [vehicle_id], references: [id])
   user            Users             @relation("UserFines", fields: [user_id], references: [id])
@@ -249,6 +262,17 @@ model Payments {
 }
 
 // ------------------- IMPOUND RECORDS -------------------
+
+
+enum ImpoundStatus {
+  IMPOUNDED
+  RELEASED 
+  PENDING 
+  OVERDUE 
+  CANCELLED
+}
+
+
 model Impound_records {
   id              Int       @id @default(autoincrement())
   fine_id         Int
@@ -260,7 +284,7 @@ model Impound_records {
   released_by     Int?
   impounded_at    DateTime  @default(now())
   released_at     DateTime?
-  status          String    @default("IMPOUNDED")
+  status          ImpoundStatus    @default(IMPOUNDED)
 
   fine         Fines          @relation(fields: [fine_id], references: [id])
   vehicle      Vehicles       @relation(fields: [vehicle_id], references: [id])

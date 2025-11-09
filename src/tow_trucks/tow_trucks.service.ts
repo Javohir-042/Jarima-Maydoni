@@ -22,10 +22,10 @@ export class TowTrucksService {
         data: {
           ...createDto,
           status: createDto.status || TowTruckStatus.AVAILABLE,
-        },
+        }, 
       });
 
-      // 3. Log yozish
+
       await tx.logs.create({
         data: {
           user_id: userId,

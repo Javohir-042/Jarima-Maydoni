@@ -1,8 +1,8 @@
-import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsString, IsBoolean, IsOptional, IsEnum, IsDate, IsUUID, IsNotEmpty, IsNumber } from "class-validator";
+import { ApiProperty } from "@nestjs/swagger";
+import { IsString, IsBoolean, IsNotEmpty, IsNumber } from "class-validator";
 
 export class CreateNotificationDto {
-    @ApiProperty({ description: "Foydalanuvchi ID", example: 1 })
+    @ApiProperty({ description: "Foydalanuvchi ID", example: 0 })
     @IsNumber()
     @IsNotEmpty()
     userId: number;

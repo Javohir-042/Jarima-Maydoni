@@ -27,6 +27,18 @@ export class VehiclesService {
       throw new BadRequestException("Vin already exists")
     }
 
+    const user = await this.prisma.users.findUnique({
+      where: { id: createVehicleDto.user_id }
+    });
+    if (!user) {
+      throw new BadRequestException("User not found");
+    }
+
+    if(createVehicleDto.user_id === 1){
+      throw new BadRequestException("User not found")
+    }
+
+
     return this.prisma.vehicles.create({ data: { ...createVehicleDto } })
   }
 
@@ -43,17 +55,18 @@ export class VehiclesService {
   }
 
   async update(id: number, updateVehicleDto: UpdateVehicleDto) {
-    const vehicles = await this.prisma.vehicles.findUnique({ where: { id } })
+    const vehicles = await this.prisma.vehicles.findUnique({ where: { id } })  
     if (!vehicles) {
       throw new NotFoundException("Vehicles id not found")
     }
 
-    const user = await this.prisma.vehicles.findUnique({
-      where: { id: updateVehicleDto.user_id }
-    })
-    if (!user) {
-      throw new NotFoundException("User not found")
+    if (updateVehicleDto.user_id) {
+      const user = await this.prisma.users.findUnique({
+        where: { id: updateVehicleDto.user_id }
+      });
+      if (!user) throw new BadRequestException("User not found");
     }
+
 
     if (updateVehicleDto.plate_number) {
       const existsPlate_number = await this.prisma.vehicles.findUnique({

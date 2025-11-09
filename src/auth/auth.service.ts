@@ -88,7 +88,7 @@ export class AuthService {
         });
 
         return {
-            message: `User signed in`,
+            message: `signed in`,
             userId: user.id,
             accessToken,
         };
