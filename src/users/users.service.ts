@@ -84,19 +84,28 @@ export class UsersService {
 
   async findOne(currentUserId: number, targetUserId: number) {
     const currentUser = await this.prisma.users.findUnique({ where: { id: currentUserId } });
-    if (!currentUser) throw new ForbiddenException("Access denied");
-
-    const user = await this.prisma.users.findUnique({
-      where: { id: targetUserId },
-    });
-
-    if (!user) throw new NotFoundException("User not found");
-
-    if (user.role === Role.SUPERADMIN && currentUser.role !== Role.SUPERADMIN) {
-      throw new ForbiddenException("Access denied");
+    if (!currentUser) {
+      throw new ForbiddenException('Ruxsat berilmadi');
     }
 
-    return user;
+    const targetUser = await this.prisma.users.findUnique({ where: { id: targetUserId } });
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (targetUser.role === Role.SUPERADMIN) {
+      throw new ForbiddenException('User not found');
+    }
+
+    if (currentUser.id === targetUserId) {
+      return targetUser;
+    }
+
+    if (currentUser.role === Role.ADMIN || currentUser.role === Role.SUPERADMIN) {
+      return targetUser;
+    }
+
+    throw new ForbiddenException('Ruxsat berilmadi');
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {

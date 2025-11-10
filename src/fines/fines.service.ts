@@ -21,7 +21,14 @@ export class FinesService {
       throw new ForbiddenException('User id not found');
     }
 
-    const vehicle = await this.prisma.vehicles.findUnique({
+
+    const exists = await this.prisma.fines.findUnique({
+      where: { fine_number: createFineDto.fine_number },
+    });
+    if (exists) throw new BadRequestException("fine_number already exists");
+
+
+    const vehicle = await this.prisma.vehicles.findUnique({ 
       where: { id: vehicle_id }
     });
     if (!vehicle) {

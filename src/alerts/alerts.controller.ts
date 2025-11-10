@@ -7,7 +7,7 @@ import { Roles } from '../common/decorator/roles.decorator';
 import { AccessTokenGuard, RolesGuard } from '../common/guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Alerts')
+@ApiTags('Alerts => Ogohlantirishlar')
 @ApiBearerAuth()
 @UseGuards(AccessTokenGuard, RolesGuard)
 @Controller('alerts')

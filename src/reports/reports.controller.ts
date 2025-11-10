@@ -8,13 +8,13 @@ import { Role } from '../common/enum/Role.enum';
 import { Roles } from '../common/decorator/roles.decorator';
 
 
-@ApiTags('Reports')
+@ApiTags("Reports  => Jarimalar bo'yicha umumiy hisobotlar")
 @ApiBearerAuth()
 @UseGuards(AccessTokenGuard, RolesGuard)
 @Controller('reports')
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
-
+ 
   @Roles(Role.ADMIN, Role.SUPERADMIN)
   @Post()
   create(@Body() createReportDto: CreateReportDto) {

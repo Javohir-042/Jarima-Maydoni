@@ -6,10 +6,9 @@ import { AccessTokenGuard, RolesGuard } from '../common/guard';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '../common/enum/Role.enum';
 import { Roles } from '../common/decorator/roles.decorator';
-import { Public } from '../common/decorator';
 
 
-@ApiTags('Infraction-types')
+@ApiTags('Infraction-types   => Jarimalar royxati')
 @ApiBearerAuth()
 @UseGuards(AccessTokenGuard, RolesGuard)
 @Controller('infraction-types')

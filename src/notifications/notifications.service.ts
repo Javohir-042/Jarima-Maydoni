@@ -1,6 +1,6 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
-import { PrismaService } from '../Prisma/prisma.service';
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import * as nodemailer from "nodemailer";
+import { PrismaService } from "../Prisma/prisma.service";
 
 @Injectable()
 export class NotificationsService {
@@ -9,12 +9,12 @@ export class NotificationsService {
 
   constructor(private readonly prisma: PrismaService) {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      this.logger.error('EMAIL_USER va EMAIL_PASS .env faylda aniqlanmagan');
-      throw new Error('EMAIL_USER va EMAIL_PASS .env faylda aniqlanmagan');
+      this.logger.error("EMAIL_USER va EMAIL_PASS .env faylda aniqlanmagan");
+      throw new NotFoundException("EMAIL_USER va EMAIL_PASS .env faylda aniqlanmagan");
     }
 
     this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: "smtp.gmail.com",
       port: 465,
       secure: true,
       auth: {
@@ -27,15 +27,15 @@ export class NotificationsService {
   async sendInfractionNotification(userId: number, infractionId: number) {
     
     const user = await this.prisma.users.findUnique({ where: { id: userId } }); 
-    if (!user) throw new NotFoundException('User_id topilmadi');
+    if (!user) throw new NotFoundException("User_id topilmadi");
 
     const infraction = await this.prisma.infraction_types.findUnique({
       where: { id: infractionId },
     });
-    if (!infraction) throw new NotFoundException('Infraction_id turi topilmadi');
+    if (!infraction) throw new NotFoundException("Infraction_id turi topilmadi");
 
     const title = `Jarima: ${infraction.name}`;
-    const message = `Hurmatli ${user.full_name},\n\nSizga quyidagi jarima qo‘yildi:\n- Jarima turi: ${infraction.name}\n- Tavsif: ${infraction.description}\n- Modda: ${infraction.law_reference}\n- Jarima summasi: ${infraction.base_fine_amount} so'm`;
+    const message = `Hurmatli ${user.full_name},\n\nSizga quyidagi jarima qo"yildi:\n- Jarima turi: ${infraction.name}\n- Tavsif: ${infraction.description}\n- Modda: ${infraction.law_reference}\n- Jarima summasi: ${infraction.base_fine_amount} so"m`;
 
     await this.prisma.notifications.create({
       data: {
@@ -58,7 +58,7 @@ export class NotificationsService {
 
   async findAllNotifications() {
     const notifications = await this.prisma.notifications.findMany({
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
     });
 
     const uniqueUserIds = new Set(notifications.map(n => n.user_id));
@@ -73,23 +73,35 @@ export class NotificationsService {
 
   async markAsRead(notificationId: number) {
     try {
+      const existing = await this.prisma.notifications.findUnique({
+        where: { id: notificationId },
+      });
+
+      if (!existing) {
+        throw new NotFoundException(`Notification ID topilmadi`);
+      }
+
       const notification = await this.prisma.notifications.update({
         where: { id: notificationId },
         data: { is_read: true },
       });
-      this.logger.log(`Notification o'qilgan belgilandi: ${notificationId}`);
-      return notification;
+
+      return {
+        message: `Notification ID ${notificationId} o'qilgan deb belgilandi ✅`,
+        notification,
+      };
     } catch (error) {
-      this.logger.error(`Notificationni o'qilgan deb belgilashda xato: ${notificationId}`, error);
-      throw error;
+      console.error("❌ Notificationni oqilgan deb belgilashda xato:", notificationId, "-", error);
+      throw new BadRequestException("Notificationni o'qilgan deb belgilashda xato yuz berdi");
     }
   }
+
 
   async getUserNotifications(userId: number) {
     try {
       return await this.prisma.notifications.findMany({
         where: { user_id: userId },
-        orderBy: { created_at: 'desc' },
+        orderBy: { created_at: "desc" },
       });
     } catch (error) {
       this.logger.error(`Foydalanuvchi notificationlarini olishda xato: ${userId}`, error);
@@ -101,15 +113,15 @@ export class NotificationsService {
     const notification = await this.prisma.notifications.findUnique({
       where: { id: notificationId },
     });
-    if (!notification) throw new NotFoundException('Notification topilmadi');
+    if (!notification) throw new NotFoundException("Notification topilmadi");
 
     const infraction = await this.prisma.infraction_types.findUnique({
       where: { id: infractionId },
     });
-    if (!infraction) throw new NotFoundException('Jarima turi topilmadi');
+    if (!infraction) throw new NotFoundException("Jarima turi topilmadi");
 
     const updatedTitle = `Jarima: ${infraction.name}`;
-    const updatedMessage = `Hurmatli foydalanuvchi, sizga quyidagi jarima qo'yildi:\n- Jarima turi: ${infraction.name}\n- Tavsif: ${infraction.description}\n- Modda: ${infraction.law_reference}\n- Jarima summasi: ${infraction.base_fine_amount} so'm`;
+    const updatedMessage = `Hurmatli foydalanuvchi, sizga quyidagi jarima qo"yildi:\n- Jarima turi: ${infraction.name}\n- Tavsif: ${infraction.description}\n- Modda: ${infraction.law_reference}\n- Jarima summasi: ${infraction.base_fine_amount} so"m`;
 
     return this.prisma.notifications.update({
       where: { id: notificationId },
@@ -125,12 +137,11 @@ export class NotificationsService {
     const notification = await this.prisma.notifications.findUnique({
       where: { id: notificationId },
     });
-    if (!notification) throw new Error('Notification topilmadi');
+    if (!notification) throw new NotFoundException("Notification topilmadi");
 
-    return this.prisma.notifications.delete({
-      where: { id: notificationId },
-    });
+    this.prisma.notifications.delete({ where: { id: notificationId }});
+
+    return {message: `Notifications o'chirildi`}
   }
-
 
 }

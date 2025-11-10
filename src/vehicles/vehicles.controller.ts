@@ -7,7 +7,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '../common/enum/Role.enum';
 import { Roles } from '../common/decorator/roles.decorator';
 
-@ApiTags('Vehicles')
+@ApiTags('Vehicles  => Har bir moshina haqida malumot')
 @ApiBearerAuth()
 @UseGuards(AccessTokenGuard, RolesGuard)
 @Controller('vehicles')

@@ -11,7 +11,7 @@ import { Roles } from '../common/decorator/roles.decorator';
 import { Role } from '../common/enum/Role.enum';
 
 
-@ApiTags('Tow_trucks')
+@ApiTags('Tow_trucks   => Evakuatorlar')
 @ApiBearerAuth()
 @UseGuards(AccessTokenGuard, RolesGuard)
 @Controller('tow-trucks')

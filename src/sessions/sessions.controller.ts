@@ -9,7 +9,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '../common/enum/Role.enum';
 import { Roles } from '../common/decorator/roles.decorator';
 
-@ApiTags('Sessions')
+@ApiTags('Sessions  => Kim tizimga kirganini kuzatish ')
 @UseGuards(AccessTokenGuard, RolesGuard)
 @ApiBearerAuth()
 @Controller('sessions')
