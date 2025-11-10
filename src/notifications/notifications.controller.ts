@@ -1,46 +1,64 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Patch, Body, Delete, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
-import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { AccessTokenGuard, RolesGuard } from '../common/guard';
-import { ApiBearerAuth } from '@nestjs/swagger';
-import { Roles } from '../common/decorator/roles.decorator';
 import { Role } from '../common/enum/Role.enum';
+import { Roles } from '../common/decorator/roles.decorator';
 
+@ApiTags('Notifications')
+@ApiBearerAuth() 
 @UseGuards(AccessTokenGuard, RolesGuard)
-@ApiBearerAuth()
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notificationService: NotificationsService) { }
 
-  @Roles(Role.SUPERADMIN, Role.ADMIN, Role.STAFF)
-  @Post()
-  create(@Body() createNotificationDto: CreateNotificationDto) {
-    return this.notificationsService.create(createNotificationDto);
+
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @Post('send/infraction/:userId/:infractionId')
+  async sendInfraction(
+    @Param('userId') userId: number,
+    @Param('infractionId') infractionId: number,
+  ) {
+    const notification = await this.notificationService.sendInfractionNotification(
+      Number(userId),
+      Number(infractionId),
+    );
+    return { ...notification };
   }
 
-  @Roles(Role.SUPERADMIN)
-  @Get()
-  findAll() {
-    return this.notificationsService.findAll();
-  }
-
-  @Roles(Role.USER, Role.ADMIN, Role.SUPERADMIN, Role.STAFF)
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.notificationsService.findOne(+id);
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @Get('all')
+  async findAll() {
+    return this.notificationService.findAllNotifications();
   }
 
 
-  @Roles(Role.USER, Role.ADMIN, Role.SUPERADMIN, Role.STAFF)
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateNotificationDto: UpdateNotificationDto) {
-    return this.notificationsService.update(+id, updateNotificationDto);
+  @Roles(Role.USER, Role.STAFF, Role.ADMIN, Role.SUPERADMIN)
+  @Get('user/:userId')
+  async getUserNotifications(@Param('userId') userId: number) {
+    return this.notificationService.getUserNotifications(userId);
   }
 
-  @Roles(Role.SUPERADMIN)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.notificationsService.remove(+id);
+  @Roles(Role.USER, Role.STAFF, Role.ADMIN, Role.SUPERADMIN)
+  @Get('read/:notificationId')
+  async markRead(@Param('notificationId') notificationId: number) {
+    return this.notificationService.markAsRead(notificationId);
+  }
+
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @Patch('update-infraction/:notificationId')
+  async updateInfraction(
+    @Param('notificationId') notificationId: number,
+    @Body() body: UpdateNotificationDto,
+  ) {
+    const { infractionId } = body;
+    return this.notificationService.updateInfraction(Number(notificationId), infractionId);
+  }
+
+  @Roles(Role.ADMIN, Role.SUPERADMIN)
+  @Delete(':notificationId')
+  async delete(@Param('notificationId') notificationId: number) {
+    return this.notificationService.deleteNotification(Number(notificationId));
   }
 }

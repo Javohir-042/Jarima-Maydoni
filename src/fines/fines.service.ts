@@ -2,13 +2,14 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { CreateFineDto } from './dto/create-fine.dto';
 import { UpdateFineDto } from './dto/update-fine.dto';
 import { PrismaService } from '../Prisma/prisma.service';
+import { GetFinesFilterDto } from './dto/get-fines-filter.dto';
 
 @Injectable()
 export class FinesService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(createFineDto: CreateFineDto) {
-    const { vehicle_id, user_id, infraction_type_id, inspector_id, fine_number, ...rest } = createFineDto;
+    const { vehicle_id, user_id, infraction_type_id, inspector_id, ...rest } = createFineDto;
 
     const user = await this.prisma.users.findUnique({
       where: { id: user_id }
@@ -46,11 +47,6 @@ export class FinesService {
       throw new NotFoundException("Inspector id not found")
     }
 
-    const exists = await this.prisma.fines.findUnique({
-      where: { fine_number }
-    });
-    if (exists) throw new BadRequestException(" Fine_number already exists")
-
 
     return this.prisma.fines.create({
       data: {
@@ -58,7 +54,7 @@ export class FinesService {
         user_id,
         infraction_type_id,
         inspector_id,
-        fine_number,
+      
         ...rest
       }
     })
@@ -71,16 +67,18 @@ export class FinesService {
   }
 
   async findOne(id: number) {
-    const fines = await this.prisma.fines.findMany({
+    const fine = await this.prisma.fines.findUnique({
       where: { id },
       include: { user: true, vehicle: true, infraction_type: true, inspector: true }
-    })
-    if (!fines) {
-      throw new NotFoundException("Fines id not found")
+    });
+
+    if (!fine) {
+      throw new NotFoundException("Fines id not found");
     }
 
-    return fines;
+    return fine;
   }
+
 
   async update(id: number, updateFineDto: UpdateFineDto) {
     const fine = await this.prisma.fines.findUnique({ where: { id } })
@@ -154,5 +152,42 @@ export class FinesService {
 
     await this.prisma.fines.delete({ where: { id } });
     return { message: `fines o'chirildi` };
+  }
+
+
+
+  async getFines(filterDto: GetFinesFilterDto) {
+    const { status, minAmount, maxAmount, startDate, endDate, location } = filterDto;
+
+    const where: any = {};
+
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (minAmount || maxAmount) {
+      where.amount = {};
+      if (minAmount) where.amount.gte = minAmount;
+      if (maxAmount) where.amount.lte = maxAmount;
+    }
+
+    if (startDate || endDate) {
+      where.fine_date = {};
+      if (startDate) where.fine_date.gte = new Date(startDate);
+      if (endDate) where.fine_date.lte = new Date(endDate);
+    }
+
+    if (location) {
+      where.location = { contains: location, mode: 'insensitive' };
+    }
+
+    const fines = await this.prisma.fines.findMany({
+      where,
+      orderBy: { fine_date: 'desc' },
+      include: { user: true, vehicle: true, infraction_type: true, inspector: true },
+    });
+
+    return fines;
   }
 }

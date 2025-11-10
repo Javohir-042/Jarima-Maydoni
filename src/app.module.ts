@@ -15,7 +15,7 @@ import { AlertsModule } from './alerts/alerts.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { FinesModule } from './fines/fines.module';
 import { StorageRatesModule } from './storage_rates/storage_rates.module';
-import { LogsModule } from './logs/logs.module';
+import { LogsModule } from './logss/logs.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ImpoundRecordsModule } from './impound_records/impound_records.module';
 import { MediaFilesModule } from './media_files/media_files.module';
@@ -45,5 +45,5 @@ import { PaymentsModule } from './payments/payments.module';
     MediaFilesModule,
     PaymentsModule,
   ],
-})
+}) 
 export class AppModule { }

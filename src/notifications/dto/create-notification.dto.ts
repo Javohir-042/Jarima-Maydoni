@@ -15,10 +15,5 @@ export class CreateNotificationDto {
     @ApiProperty({ description: "Notification mazmuni", example: "Sizga yangi xabar keldi" })
     @IsString()
     @IsNotEmpty()
-    message: string; 
-
-    @ApiProperty({ description: "Notification o'qilganligi", example: false })
-    @IsBoolean()
-    is_read: boolean;
-
+    message: string;
 }

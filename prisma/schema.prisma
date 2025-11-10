@@ -27,6 +27,7 @@ model Users {
   hashedRefreshToken String?
   is_active          Boolean  @default(false)
 
+
   notifications                  Notifications[]
   sessions                       Sessions[]
   reports                        Reports[]

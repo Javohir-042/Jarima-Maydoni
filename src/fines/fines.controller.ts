@@ -1,11 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { FinesService } from './fines.service';
 import { CreateFineDto } from './dto/create-fine.dto';
 import { UpdateFineDto } from './dto/update-fine.dto';
 import { AccessTokenGuard, RolesGuard } from '../common/guard';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Role } from '../common/enum/Role.enum';
 import { Roles } from '../common/decorator/roles.decorator';
+import { GetFinesFilterDto } from './dto/get-fines-filter.dto';
 
 
 @ApiTags('Fines')
@@ -27,6 +28,15 @@ export class FinesController {
     return this.finesService.findAll();
   }
 
+
+  @Roles(Role.ADMIN, Role.SUPERADMIN, Role.STAFF)
+  @Get('filter')
+  @ApiOperation({ summary: 'Jarimalarni filterlash bilan olish' })
+  async getFines(@Query() filterDto: GetFinesFilterDto) {
+    return this.finesService.getFines(filterDto);
+  }
+
+
   @Roles(Role.ADMIN, Role.SUPERADMIN, Role.STAFF)
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -44,4 +54,7 @@ export class FinesController {
   remove(@Param('id') id: string) {
     return this.finesService.remove(+id);
   }
+
+
+
 }

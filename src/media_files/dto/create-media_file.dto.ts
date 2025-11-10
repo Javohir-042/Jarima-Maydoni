@@ -1,37 +1,27 @@
-import { IsInt, IsOptional, IsString, MaxLength, IsDateString } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsDateString } from 'class-validator';
 
 export class CreateMediaFileDto {
-    @ApiPropertyOptional({ description: 'Jarima ID', example: 5 })
+    @ApiProperty({ required: false, description: 'Tegishli jarima ID' })
     @IsOptional()
-    @IsInt()
     @Type(() => Number)
+    @IsNumber()
     fine_id?: number;
 
-    @ApiPropertyOptional({ description: 'Record ID', example: 10 })
+    @ApiProperty({ required: false, description: 'Tegishli saqlash yozuvi ID' })
     @IsOptional()
-    @IsInt()
     @Type(() => Number)
+    @IsNumber()
     record_id?: number;
 
-    @ApiProperty({ description: 'Fayl yo\'ti', example: 'uploads/file.jpg' })
-    @IsString()
-    @MaxLength(255)
-    file_path: string;
-
-    @ApiProperty({ description: 'Fayl turi', example: 'image/jpeg' })
-    @IsString()
-    @MaxLength(50)
-    file_type: string;
-
-    @ApiProperty({ description: 'Yuklagan user ID', example: 1 })
-    @IsInt()
+    @ApiProperty({ description: 'Faylni yuklagan foydalanuvchi ID' })
     @Type(() => Number)
+    @IsNumber()
     uploaded_by: number;
 
-    @ApiPropertyOptional({ description: 'Amal qilish muddati', example: '2025-12-31' })
+    @ApiProperty({ required: false, format: 'date-time', description: 'Faylning amal qilish muddati' })
     @IsOptional()
     @IsDateString()
-    effective_to?: string;
+    effective_to?: Date;
 }

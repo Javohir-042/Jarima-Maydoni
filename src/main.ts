@@ -3,23 +3,25 @@ import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-// import { AllExceptionsFilter } from './common/error/error.handing';
+import { AllExceptionsFilter } from './common/error/error.handing';
+import { winstonConfig } from './common/logging/winston.loggin';
+import { WinstonModule } from 'nest-winston';
 
 async function bootstrap() {
   try {
     const PORT = process.env.PORT ?? 3000;
     const app = await NestFactory.create(AppModule, {
-      logger: ["error", "warn"],
-      // logger: WinstonModule.createLogger(winstonConfig)
+      // logger: ["error", "warn"],
+      logger: WinstonModule.createLogger(winstonConfig)
     });
-    // app.useGlobalFilters(new AllExceptionsFilter());
+    app.useGlobalFilters(new AllExceptionsFilter());
 
     app.use(cookieParser());
     app.setGlobalPrefix("api"); 
     app.useGlobalPipes(new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
-      transform: true,
+      transform: true, 
     }));
 
     const config = new DocumentBuilder()

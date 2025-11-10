@@ -1,78 +1,136 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-
-import { CreateNotificationDto } from './dto/create-notification.dto';
-import { UpdateNotificationDto } from './dto/update-notification.dto';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../Prisma/prisma.service';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) { }
+  private readonly logger = new Logger(NotificationsService.name);
+  private transporter: nodemailer.Transporter;
 
-  async create(createNotificationDto: CreateNotificationDto) {
-    const { userId, title, message, is_read } = createNotificationDto
-
-    const user = await this.prisma.users.findUnique({
-      where: { id: userId }
-    })
-
-    if (userId === 1) {
-      throw new ForbiddenException('User id not found');
+  constructor(private readonly prisma: PrismaService) {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      this.logger.error('EMAIL_USER va EMAIL_PASS .env faylda aniqlanmagan');
+      throw new Error('EMAIL_USER va EMAIL_PASS .env faylda aniqlanmagan');
     }
 
-    if (!user) {
-      throw new NotFoundException('User not found')
-    }
-    return await this.prisma.notifications.create({
-      data: {
-        user_id: userId,
-        title,
-        message,
-        is_read
-      }
-    })
-  }
-
-  async findAll() {
-    return await this.prisma.notifications.findMany({ include: { user: true } });
-  }
-
-  async findOne(id: number) {
-    const notification = await this.prisma.notifications.findUnique({
-      where: { id }, include: { user: true }
-    });
-    if (!notification) {
-      throw new NotFoundException(`Notification with id ${id} not found`);
-    }
-    return notification;
-  }
-
-  async update(id: number, updateNotificationDto: UpdateNotificationDto) {
-    const notification = await this.findOne(id);
-
-    if (updateNotificationDto.userId && updateNotificationDto.userId === 1) {
-      throw new ForbiddenException(`User id not found`);
-    }
-
-    const { userId, ...rest } = updateNotificationDto;
-
-    return await this.prisma.notifications.update({
-      where: { id },
-      data: {
-        ...rest,
-        ...(userId ? { user_id: userId } : {}),
+    this.transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
   }
 
+  async sendInfractionNotification(userId: number, infractionId: number) {
+    
+    const user = await this.prisma.users.findUnique({ where: { id: userId } }); 
+    if (!user) throw new NotFoundException('User_id topilmadi');
 
-  async remove(id: number) {
-    const notification = await this.findOne(id);
+    const infraction = await this.prisma.infraction_types.findUnique({
+      where: { id: infractionId },
+    });
+    if (!infraction) throw new NotFoundException('Infraction_id turi topilmadi');
 
-    await this.prisma.notifications.delete({
-      where: { id },
+    const title = `Jarima: ${infraction.name}`;
+    const message = `Hurmatli ${user.full_name},\n\nSizga quyidagi jarima qo‘yildi:\n- Jarima turi: ${infraction.name}\n- Tavsif: ${infraction.description}\n- Modda: ${infraction.law_reference}\n- Jarima summasi: ${infraction.base_fine_amount} so'm`;
+
+    await this.prisma.notifications.create({
+      data: {
+        user_id: userId,
+        title,
+        message,
+      },
     });
 
-    return { message: "Notification o'chirildi" };
+    await this.transporter.sendMail({
+      from: `"Jarima Maydoni" <${process.env.EMAIL_USER}>`,
+      to: user.email!, 
+      subject: title,
+      text: message,
+    });
+
+
+    return { userId, title, message };
   }
+
+  async findAllNotifications() {
+    const notifications = await this.prisma.notifications.findMany({
+      orderBy: { created_at: 'desc' },
+    });
+
+    const uniqueUserIds = new Set(notifications.map(n => n.user_id));
+
+    return {
+      totalNotifications: notifications.length,
+      totalUsers: uniqueUserIds.size,
+      notifications,
+    };
+  }
+
+
+  async markAsRead(notificationId: number) {
+    try {
+      const notification = await this.prisma.notifications.update({
+        where: { id: notificationId },
+        data: { is_read: true },
+      });
+      this.logger.log(`Notification o'qilgan belgilandi: ${notificationId}`);
+      return notification;
+    } catch (error) {
+      this.logger.error(`Notificationni o'qilgan deb belgilashda xato: ${notificationId}`, error);
+      throw error;
+    }
+  }
+
+  async getUserNotifications(userId: number) {
+    try {
+      return await this.prisma.notifications.findMany({
+        where: { user_id: userId },
+        orderBy: { created_at: 'desc' },
+      });
+    } catch (error) {
+      this.logger.error(`Foydalanuvchi notificationlarini olishda xato: ${userId}`, error);
+      throw error;
+    }
+  }
+
+  async updateInfraction(notificationId: number, infractionId: number) {
+    const notification = await this.prisma.notifications.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification) throw new NotFoundException('Notification topilmadi');
+
+    const infraction = await this.prisma.infraction_types.findUnique({
+      where: { id: infractionId },
+    });
+    if (!infraction) throw new NotFoundException('Jarima turi topilmadi');
+
+    const updatedTitle = `Jarima: ${infraction.name}`;
+    const updatedMessage = `Hurmatli foydalanuvchi, sizga quyidagi jarima qo'yildi:\n- Jarima turi: ${infraction.name}\n- Tavsif: ${infraction.description}\n- Modda: ${infraction.law_reference}\n- Jarima summasi: ${infraction.base_fine_amount} so'm`;
+
+    return this.prisma.notifications.update({
+      where: { id: notificationId },
+      data: {
+        title: updatedTitle,
+        message: updatedMessage,
+      },
+    });
+  }
+
+  
+  async deleteNotification(notificationId: number) {
+    const notification = await this.prisma.notifications.findUnique({
+      where: { id: notificationId },
+    });
+    if (!notification) throw new Error('Notification topilmadi');
+
+    return this.prisma.notifications.delete({
+      where: { id: notificationId },
+    });
+  }
+
 
 }
